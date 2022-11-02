@@ -1,0 +1,499 @@
+---
+title: "Bellabeat R Markdown Analysis"
+author: "Kevin Folkes"
+date: "2022-10-29"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+ ![](/cloud/project/images/Bellabeat1.JPG)
+
+
+## Introduction
+As part of the Google data analytics capstone project, this analysis is on the wellness company for women, [Bellabeat](https://bellabeat.com/) that's interesting in analyzing smart fitness data that could help unlock new opportunities for the company.
+
+***
+
+### Stakeholders
+* Urška Sršen: Bellabeat’s cofounder and Chief Creative Officer
+* Sando Mur: Mathematician and Bellabeat’s cofounder; key member of the Bellabeat executive team.
+
+
+### Business Task:
+Analyze existing smart fitness device usage data and uncover insights and trends that Bellabeat can adopt to positively impact marketing strategy.
+
+### Contraints & ROCCC
+
+Overall the data sets used are not considered reliable:
+
++ The [datasets](https://www.kaggle.com/datasets/arashnic/fitbit) used are from available publicly on Kaggle by the user [Mobius](https://www.kaggle.com/arashnic) and consists of 30 users who consented to the submission of their personal tracker data.
++ Users gender are unknown which could lead to a bias or incorrect conclusion.
++ Data sets are not current as they were recorded in 2016 and current day user activity may have changed.
+
+
+### Perpare & Tools
+* This analysis was executed using the R programming language with RStudio. 
+Of the available data sets, the ones that were used in this analysis are: 
+  + dailyActivity_merged 
+  + sleepDay_merged
+
+
+&nbsp;
+
+* R Packages used:
+  + tidyverse
+  + lubridate
+  + dplyr
+  + ggplot2
+  + tidyr
+  + rmarkdown
+
+&nbsp;
+
+* Github & Rmarkdown will be used to document the full analysis process of the capstone project while Tableau is used for visualizations.
+<br>
+
+***
+
+
+### **Documentation of Cleaning**
+
+&nbsp;
+&nbsp;
+
+#### 1. Installing Packages
+
+```{r message=FALSE, warning=FALSE}
+# Installing the packages needed for the data analysis
+
+install.packages("tidyverse")
+install.packages("lubridate")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("tidyr")
+```
+
+&nbsp;
+&nbsp;
+
+#### 1.1 Loading Packages
+
+```{r}
+# Loading the installed libraries
+
+library(tidyverse)
+library(lubridate)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+```
+
+&nbsp;
+&nbsp;
+
+#### 1.3 Loading Data Sets in R
+
+
+```{r}
+# Next I will be importing the 2 data sets to be used in the analysis.
+
+dailyActivity <- read.csv("dailyActivity_merged.csv")
+sleep <- read.csv("sleepDay_merged.csv")
+
+```
+
+&nbsp;
+&nbsp;
+
+#### 2. Reviwing Data, columns and structure
+
+```{r}
+# Next I will review the data imported to familiarize myself with their headings and data structure
+
+head(dailyActivity)
+colnames(dailyActivity)
+str(dailyActivity)
+# Findings: Date column in the dailyActivity df is set to char
+```
+&nbsp;
+&nbsp;
+
+#### 3. Data Cleaning - Duplicates
+
+
+```{r}
+#Checking for duplicates
+
+any(duplicated(dailyActivity))
+any(duplicated(sleep))
+
+```  
+&nbsp;
+&nbsp;
+
+#### 3.1 Identifying duplicated rowns
+
+
+```{r}
+which(duplicated(sleep))
+#Finding: there are duplicated rows in the sleep data set, rows 162, 224, & 381
+```  
+&nbsp;
+&nbsp;
+
+#### 3.2 Modifying date columns
+
+
+```{r}
+# Cleaning Dates in both data sets 
+
+dailyActivity$ActivityDate <- as.Date(dailyActivity$ActivityDate, format = "%m/%d/%Y")
+sleep$SleepDay <- as.Date(sleep$SleepDay, format = "%m/%d/%Y")
+```
+
+&nbsp;
+&nbsp;
+
+#### 3.3 Removing duplicated roms
+
+```{r}
+# Removing dupilcates from sleep data set
+
+clean_Sleep <- sleep[!duplicated(sleep), ]
+str(clean_Sleep)
+# 3 rows were removed from data set, observation count went from 413 to 410
+```
+
+&nbsp;
+&nbsp;
+
+#### 4. Identifying NA or Null Values.
+
+```{r}
+# Checking for NA or Null values in the data sets
+
+sum(is.na(dailyActivity))
+sum(is.null(dailyActivity))
+sum(is.na(clean_Sleep))
+sum(is.null(clean_Sleep))
+# There are no NA or NUll values in the data sets
+```
+
+
+
+### **Analyze**
+
+***
+
+&nbsp;
+&nbsp;
+
+#### 1. Summary of data.
+
+```{r}
+# Summary of both data sets
+
+summary(dailyActivity)
+summary(clean_Sleep)
+```
+
+&nbsp;
+&nbsp;
+
+#### 2. User Activity Bar Chart.
+
+```{r}
+# User Activity bar Chart
+# calculating the percentage of each activity
+
+Total_Activity_Minutes <- sum(dailyActivity$SedentaryMinutes) + 
+  sum(dailyActivity$LightlyActiveMinutes) + 
+  sum(dailyActivity$FairlyActiveMinutes) + 
+  sum(dailyActivity$VeryActiveMinutes)
+
+Activity_Percent <- data.frame(
+  Sedentary = sum(dailyActivity$SedentaryMinutes)/sum (Total_Activity_Minutes) * 100,
+  LightlyActive = sum(dailyActivity$LightlyActiveMinutes)/sum (Total_Activity_Minutes) * 100,
+  FairlyActive = sum(dailyActivity$FairlyActiveMinutes)/sum (Total_Activity_Minutes) * 100,
+  VeryActive = sum(dailyActivity$VeryActiveMinutes)/sum (Total_Activity_Minutes) * 100
+)
+# Result:  Sedentary LightlyActive FairlyActive VeryActive
+# 1  81.32989      15.82049     1.113014   1.736602
+```
+
+
+
+```{r}
+# creating vectors from the reuslts
+Activity_Type <- c("Sedentary", "Lightly_Active", "Fairly_Active", "Very_Active")
+Activity_Type_percentage <- c(81.32, 15.82, 1.11, 1.72)
+```
+
+
+
+```{r}
+# Creating a data frame
+Activity_Type_Data <- data.frame(
+  Activity_Type, Activity_Type_percentage
+)
+```
+
+
+
+```{r}
+# Creating Activity Bar chart
+
+Activity_Bar_Chart <- ggplot(
+  Activity_Type_Data, aes(x = Activity_Type, y = Activity_Type_percentage, fill = factor(Activity_Type,))) + geom_bar(stat = 'identity') + theme(axis.text.x = element_text(angle = 45)) + labs(
+    title = "User Activity Percentage"
+  )
+
+Activity_Bar_Chart
+```
+Here we can see that users spent most of their time in a Sedentary state (not active), and when they are in an active state, the activity state is mostly limited to lightly Active rather than fairly active and very active
+
+&nbsp;
+&nbsp;
+
+#### 3. Stacked Bar Chart by Day of the Week.
+
+```{r}
+Day_Week1 <- dailyActivity
+Day_Week1$ActivityDate <- weekdays(Day_Week1$ActivityDate)
+```
+
+
+
+```{r}
+# Activity by day of the week (Very Active, Fairly Active & Lightly Active)
+Day_Week1 <- dailyActivity
+Day_Week1$ActivityDate <- weekdays(Day_Week1$ActivityDate)
+
+Activity_chart <- Day_Week1 %>% 
+  group_by(ActivityDate) %>% 
+  summarize(lightly_active = sum(LightlyActiveMinutes), fairly_active = sum(FairlyActiveMinutes), very_active = sum(VeryActiveMinutes)) %>%
+  pivot_longer(-ActivityDate, names_to = "Activities") %>% 
+  ggplot(aes(ActivityDate, value, fill = Activities)) +
+  geom_col() +
+  theme(axis.text.x = element_text(angle = 45)) +
+  labs(title = "User Activity by Day of the Week",
+       y = "Minutes",
+       x = "Days of the Week")
+
+Activity_chart
+```
+Tuesdays was the most active day within the week with Sundays and Mondays being the least active.
+
+&nbsp;
+&nbsp;
+
+#### 4. Correlation Between Steps and Calories.
+
+
+```{r}
+# correlation between total average total steps and the average calories lost.
+
+library(ggplot2)
+
+average_activity <- dailyActivity
+
+average_activity %>% 
+  group_by (Id) %>%
+  summarise(mean_calories = mean(Calories), mean_total_steps = mean(TotalSteps)) %>% 
+  ggplot(average_activity, mapping = (aes(mean_calories, mean_total_steps))) + 
+  geom_point(stat = "summary",
+             fun = "mean") + geom_smooth() + 
+  theme_minimal() + 
+  labs(
+    title = "Calories Vs Total Steps",
+    x = "Average Calories",
+    y= "Average Steps")
+
+```
+
+The correlation between the average steps taken and the average calories lost shows a positive relatiionship, where the more steps you take, the more calories you burn.
+
+&nbsp;
+&nbsp;
+
+#### 5. Correlation Very Active Minutes and Calories.
+
+```{r}
+# Correlation between calories vs active minutes
+calories_v_activity <- dailyActivity
+
+  calories_v_activity %>% 
+  group_by (Id) %>%
+  summarise(mean_calories = mean(Calories), mean_very_active = mean(VeryActiveMinutes)) %>% 
+  ggplot(calories_v_activity, mapping = (aes(mean_calories, mean_very_active))) + 
+  geom_point(stat = "summary",
+             fun = "mean") + geom_smooth(color = "green") + 
+  theme_minimal() + 
+  labs(
+    title = "Calories Vs Very Active Minutes",
+    x = "Average Calories",
+    y= "Average Active Minutes")
+```
+
+The relationship between the average active minutes and the average calories lost is even more positive leading to conclude that the more active your are, the more calories you will lose.
+
+&nbsp;
+&nbsp;
+
+#### 6. Correlation Fairly Active Minutes and Calories.
+
+```{r}
+ # Correlation between calories vs fairly minutes
+  
+  calories_f_activity <- dailyActivity
+  
+  calories_f_activity %>% 
+    group_by (Id) %>%
+    summarise(mean_calories = mean(Calories), mean_fairly_active = mean(FairlyActiveMinutes)) %>% 
+    ggplot(calories_f_activity, mapping = (aes(mean_calories, mean_fairly_active))) + 
+    geom_point(stat = "summary",
+               fun = "mean") + geom_smooth(color = "orange") + 
+    theme_minimal() + 
+    labs(
+      title = "Calories Vs Fairly Active Minutes",
+      x = "Average Calories",
+      y= "Average Fairly Minutes")
+```
+
+As the intensity and duration of the activity drops, so does the amount of calories lost.
+We can see this in the relationship between the average calories and the average of fairly active minutes.
+
+&nbsp;
+&nbsp;
+
+#### 7. Correlation Lightly Active Minutes and Calories.
+
+```{r}
+# Correlation between calories vs lightly minutes
+  
+  calories_l_activity <- dailyActivity
+  
+  calories_l_activity %>% 
+    group_by (Id) %>%
+    summarise(mean_calories = mean(Calories), mean_lightly_active = mean(LightlyActiveMinutes)) %>% 
+    ggplot(calories_l_activity, mapping = (aes(mean_calories, mean_lightly_active))) + 
+    geom_point(stat = "summary",
+               fun = "mean") + geom_smooth(color = "red") + 
+    theme_minimal() + 
+    labs(
+      title = "Calories Vs Lightly Active Minutes",
+      x = "Average Calories",
+      y= "Average Lightly Minutes")
+```
+
+The relationship is no longer positive when it comes to lightly active minutes and the average calories lost.
+
+&nbsp;
+&nbsp;
+
+#### 8. Correlation Sleep and Calories.
+
+```{r}
+# Correlation between calories and sleep
+  
+  AVG_time_wasted_in_bed <- inner_join(dailyActivity, clean_Sleep, by = "Id")
+  
+  AVG_time_wasted_in_bed %>% 
+    group_by(Id) %>% 
+    summarise(mean_calories = mean(Calories), mean_min_asleep = mean(TotalMinutesAsleep)) %>% 
+    ggplot(AVG_time_wasted_in_bed, mapping = (aes(mean_calories, mean_min_asleep))) +
+    geom_point(
+      stat = "summary",
+      fun = "mean") + geom_smooth(color = "cyan") +
+    labs(
+      title = "Calories vs Time Asleep", 
+      x = "Average Calories",
+      y = "Avearge Minutes Asleep"
+    ) + theme_minimal()
+  
+```
+
+
+There is no relationship between the average mins spent sleeping and the average amount of calories lost. 
+
+&nbsp;
+&nbsp;
+
+#### 9. Clustered Bar Chart Showing Sleep Activities by the Days of the Week.
+
+```{r}
+# Grouped bar chart showing time spent in bed activities by days of the week.
+  
+  time_wasted_bar_chart <- as.data.frame(clean_Sleep)
+  time_wasted_bar_chart$SleepDay <- weekdays(time_wasted_bar_chart$SleepDay)
+  
+  dodge_chart <- time_wasted_bar_chart %>% 
+    group_by(SleepDay) %>% 
+    summarise(total_minutes = sum(TotalTimeInBed), minutes_asleep = sum(TotalMinutesAsleep), wasted_minutes_in_bed = sum(TotalTimeInBed) - sum(TotalMinutesAsleep)) %>% 
+    pivot_longer(-SleepDay, names_to = "sleep_activities")
+    
+    ggplot(dodge_chart, aes(fill = sleep_activities, x = SleepDay, y = value)) +
+      geom_bar(position = "dodge", stat = "identity") +
+      theme(axis.text.x = element_text(angle = 45)) +
+      labs(
+        title = "Time Spent In Bed",
+        x = "Days of the Week", 
+        y = "Minutes"
+      )
+    
+```
+
+
+This graphs shows that on Tuesdays and Wednesdays are the days where the most time is spent in bed sleeping however as we learned the in the user activity by day, these were also the days when users spent the most time being active with Monday being the day with the least amount of sleep.
+
+
+&nbsp;
+&nbsp;
+
+
+***
+## Recommendations
+&nbsp;
+&nbsp;
+
+
+* Inspire users to be more active by allowing them to create their own personalized goals tailored to their preferred activity type. 
+
+* Have the Bellabeat app send notifications when an activity is due and also congratulate when completed to encourage consistency and habit building. 
+
+* Have and option for the Bellabeat app to include users sleep cycle and recommend a bed time, sending reminders so users can get adequate rest a d not be distracted while in bed.
+
+* Include a reward system for consistent users (points which can be traded in for a percentage off Bellabeat products and services, gift cards etc...)
+
+* For users that are not active, offer targeted promotions on Sundays & Mondays (least active days).
+
+&nbsp;
+&nbsp;
+
+
+***
+### Credits & Thank you's
+
+&nbsp;
+&nbsp;
+
+* *Data used for analysis:* https://www.kaggle.com/datasets/arashnic/fitbit
+
+* *Github*: https://github.com/Jessiah13/Bellabeat_Capstone
+
+* *Tableau:* https://public.tableau.com/app/profile/kevin.folkes8398/viz/BellabeatAnalysis_16657461671170/GoogleDataAnalyticsCapstoneAnalysisBellabeat
+
+
+*Thank-You!*
+
+
+
+
+
+
+
+
+
+
